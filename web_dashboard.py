@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+#above is for linux
 
 # --- Core Libraries ---
 import sys
@@ -416,7 +417,6 @@ async def websocket_endpoint(websocket: WebSocket):
         manager.disconnect(websocket)
 
 
-# --- Main Application Execution ---
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
