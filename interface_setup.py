@@ -1,10 +1,12 @@
 # interface_selector.py
 # A reusable module to find and select a network interface.
-
-import psutil
-import sys
-import socket
-
+try:
+    import psutil
+    import sys
+    import socket
+except ImportError:
+    print("Error: Required libraries not found.")
+    sys.exit(1)
 
 def select_interface():
     """
@@ -32,7 +34,7 @@ def select_interface():
         # Check if the interface is up (online) and set status emoji
         status_emoji = "🔴"  # Default to offline
         if iface_name in interfaces_stats and interfaces_stats[iface_name].isup:
-            status_emoji = "🟢"  # Set to online if 'isup' is true
+            status_emoji = "🟩"  # Set to online if 'isup' is true
 
         # Find the primary IPv4 address to make the choice clearer
         ip_address = ""
@@ -60,8 +62,7 @@ def select_interface():
             sys.exit(0)
 
 
-# This part allows the script to be run directly for testing purposes.
-# If you run `python interface_selector.py`, it will execute this block.
+
 if __name__ == '__main__':
     print("--- Interface Selector Test ---")
     selected_interface = select_interface()
