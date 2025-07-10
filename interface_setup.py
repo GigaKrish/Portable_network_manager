@@ -10,9 +10,8 @@ except ImportError:
 
 def select_interface():
     """
-    Lists all network interfaces with their status (online/offline)
-    and prompts the user to select one.
-    Returns the name of the selected interface.
+    Lists all network interfaces with their status (online/offline).
+    Returns the name of the user selected interface.
     """
     print("Detecting network interfaces...")
     try:
