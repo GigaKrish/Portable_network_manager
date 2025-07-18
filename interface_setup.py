@@ -43,7 +43,7 @@ def select_interface():
                     ip_address = f"(IP: {addr.address})"
                     break
 
-        # Print the interface with its status emoji
+
         print(f"  {i + 1}: {status_emoji} {iface_name} {ip_address}")
 
     while True:
