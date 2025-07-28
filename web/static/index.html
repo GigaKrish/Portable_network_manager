@@ -1,0 +1,84 @@
+<!-- FILE: web/static/index.html  -->
+<!-- PURPOSE: The HTML, CSS, and JavaScript for the dashboard. -->
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Task Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        html.dark body { background-color: #111827; color: #e5e7eb; }
+        .card { background-color: white; }
+        html.dark .card { background-color: #1f2937; }
+        .chart-container { height: 250px; }
+        .tab-button { transition: all 0.2s; }
+        .tab-button.active { border-color: #3b82f6; color: #3b82f6; }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-6">
+            <h1 class="text-3xl font-bold">Network Task Monitor</h1>
+            <p class="text-gray-500 dark:text-gray-400">Interface: <span id="interfaceName" class="font-semibold text-cyan-500">...</span></p>
+        </header>
+        <div class="card shadow-lg rounded-lg p-4 md:p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Live Packet Rate (packets/sec)</h2>
+            <div class="chart-container"><canvas id="rateChart"></canvas></div>
+        </div>
+        <div class="card shadow-lg rounded-lg p-4 md:p-6">
+            <div class="border-b border-gray-200 dark:border-gray-700 mb-4">
+                <nav class="-mb-px flex space-x-8" aria-label="Tabs"><button id="tab-processes" class="tab-button active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">By Process</button><button id="tab-connections" class="tab-button whitespace-nowrap py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:border-gray-600 font-medium text-sm">By Connection</button></nav>
+            </div>
+            <div id="content-processes" class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase">PID</th><th class="px-6 py-3 text-left text-xs font-medium uppercase">Process Name</th><th class="px-6 py-3 text-left text-xs font-medium uppercase">Packets (In/Out)</th><th class="px-6 py-3 text-left text-xs font-medium uppercase">Actions</th></tr></thead>
+                    <tbody id="processTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                </table>
+            </div>
+            <div id="content-connections" class="overflow-x-auto hidden">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                     <thead class="bg-gray-50 dark:bg-gray-800"><tr><th class="px-6 py-3 text-left text-xs font-medium uppercase">Direction</th><th class="px-6 py-3 text-left text-xs font-medium uppercase">Remote IP</th><th class="px-6 py-3 text-left text-xs font-medium uppercase">Hostname</th><th class="px-6 py-3 text-left text-xs font-medium uppercase">Packets (In/Out)</th></tr></thead>
+                    <tbody id="connectionTableBody" class="divide-y divide-gray-200 dark:divide-gray-700"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script>
+        const rateChart = new Chart(document.getElementById('rateChart').getContext('2d'), { type: 'line', data: { datasets: [{ label: 'Packets/sec', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true }, x: { type: 'time', time: { unit: 'second' } } }, plugins: { legend: { display: false } }, animation: { duration: 0 } } });
+        const processTableBody = document.getElementById('processTableBody');
+        const connectionTableBody = document.getElementById('connectionTableBody');
+
+        function updateDashboard(data) {
+            document.getElementById('interfaceName').textContent = data.interface;
+            rateChart.data.datasets[0].data = data.packet_rate.map(p => ({ x: p[0], y: p[1] }));
+            rateChart.update();
+
+            let processHtml = '';
+            data.processes.forEach(proc => { processHtml += `<tr class="hover:bg-gray-100 dark:hover:bg-gray-700"><td class="p-4">${proc.pid}</td><td class="p-4 font-semibold">${proc.name}</td><td class="p-4"><span class="text-green-500">IN ${proc.in_count}</span> / <span class="text-blue-500">OUT ${proc.out_count}</span></td><td class="p-4"><button onclick="terminateProcess(${proc.pid})" class="px-2 py-1 text-xs text-white bg-red-600 rounded">Terminate</button></td></tr>`; });
+            processTableBody.innerHTML = processHtml;
+
+            let connHtml = '';
+            data.top_talkers.forEach(c => { connHtml += `<tr class="hover:bg-gray-100 dark:hover:bg-gray-700"><td class="p-4">${c.in_count > c.out_count ? 'IN' : 'OUT'}</td><td class="p-4">${c.ip}</td><td class="p-4">${c.hostname}</td><td class="p-4"><span class="text-green-500">IN ${c.in_count}</span> / <span class="text-blue-500">OUT ${c.out_count}</span></td></tr>`; });
+            connectionTableBody.innerHTML = connHtml;
+        }
+        
+        async function terminateProcess(pid) { if (!confirm('Terminate PID ' + pid + '?')) return; const res = await fetch('/api/process/' + pid + '/terminate', { method: 'POST' }); alert((await res.json()).message); }
+
+        const ws = new WebSocket('ws://' + window.location.host + '/ws');
+        ws.onmessage = (event) => updateDashboard(JSON.parse(event.data));
+
+        const tabs = document.querySelectorAll('.tab-button');
+        const contents = { 'tab-processes': document.getElementById('content-processes'), 'tab-connections': document.getElementById('content-connections') };
+        tabs.forEach(tab => tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            Object.values(contents).forEach(c => c.classList.add('hidden'));
+            contents[tab.id].classList.remove('hidden');
+        }));
+    </script>
+</body>
+</html>
