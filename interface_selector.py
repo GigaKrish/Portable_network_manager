@@ -12,8 +12,7 @@ except ImportError:
 
 def select_interface():
     """
-    Lists all network interfaces with their status (online/offline)
-    and prompts the user to select one.
+    Lists all network interfaces with their status (online/offline).
     Returns the name of the selected interface.
     """
     print("Detecting network interfaces...")
@@ -31,9 +30,9 @@ def select_interface():
 
     print("Please select the network interface you want to use:")
     for i, iface_name in enumerate(interface_list):
-        status_text = "[Offline]"
+        status_text = "[OFF]"
         if iface_name in interfaces_stats and interfaces_stats[iface_name].isup:
-            status_text = "[Online]"
+            status_text = "[ON]"
 
         ip_address = ""
         if iface_name in interfaces_addrs:
