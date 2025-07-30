@@ -1,5 +1,7 @@
 # FILE: web/api.py
 # PURPOSE: Contains the FastAPI web server and all API endpoints.
+#Upgraded from Flask API to asynchronous Fast API
+
 
 import json
 import asyncio
