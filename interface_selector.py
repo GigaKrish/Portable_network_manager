@@ -21,7 +21,7 @@ def select_interface():
         interfaces_stats = psutil.net_if_stats()
         interface_list = list(interfaces_addrs.keys())
     except Exception as e:
-        print(f"Could not retrieve interfaces: {e}")
+        print(f"Unable to retrieve interfaces: {e}")
         sys.exit(1)
 
     if not interface_list:
