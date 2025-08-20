@@ -26,7 +26,7 @@ def get_interface_ip(iface_name: str) -> str:
 if __name__ == '__main__':
     multiprocessing.freeze_support()
     
-    # --- Initialization ---
+
     selected_iface = select_interface()
     data_models.selected_interface = selected_iface # Store globally for the API
     local_ip = get_interface_ip(selected_iface)
